@@ -6,6 +6,7 @@ import numpy as np
 import re
 from multiprocessing import Pool, Queue, Lock, Process, freeze_support
 import time
+import matplotlib.pyplot as plt
 
 #pytesseract.pytesseract.tesseract_cmd = 'C:\\Program Files (x86)\\Tesseract-OCR\\tesseract.exe'
 x = 1280.00 / 3840.00
@@ -17,36 +18,44 @@ def idcardocr(imgname, mode=1):
         print(u'进入身份证光学识别流程...')
         if mode==1:
             # generate_mask(x)
-            img_data_gray, img_org = img_resize_gray(imgname)
+            img_data_gray, img_org = img_resize_gray(imgname)#img_data_gray身份证灰度凸显，img_org身份证彩色图像
             result_dict = dict()
-            name_pic = find_name(img_data_gray, img_org)
-            # showimg(name_pic)
-            # print 'name'
+            name_pic = find_name(img_data_gray, img_org)#name_pic得到贾素银图片
+            #showing(name_pic,'image1')
+            #result_dict['name'] = get_address(name_pic)
             result_dict['name'] = get_name(name_pic)
             # print result_dict['name']
+            
 
-            sex_pic = find_sex(img_data_gray, img_org)
-            # showimg(sex_pic)
-            # print 'sex'
-            result_dict['sex'] = get_sex(sex_pic)
-            # print result_dict['sex']
+            #sex_pic = find_sex(img_data_gray, img_org)
+            #showimg(sex_pic)
+            
+            idnum_pic = find_idnum(img_data_gray, img_org)
+            new_id,new_birth=get_idnum_and_birth(idnum_pic);
+            #result_dict['sex'] = get_sex(sex_pic)
+            result_dict['sex'] = new_get_sex(new_id)
 
             nation_pic = find_nation(img_data_gray, img_org)
-            # showimg(nation_pic)
+            #showimg(nation_pic)
             # print 'nation'
             result_dict['nation'] = get_nation(nation_pic)
             # print result_dict['nation']
 
-            address_pic = find_address(img_data_gray, img_org)
-            # showimg(address_pic)
+        #    address_pic = find_address(img_data_gray, img_org)
+            #showimg(address_pic)
             # print 'address'
-            result_dict['address'] = get_address(address_pic)
+        #    result_dict['address'] = get_address(address_pic)
             # print result_dict['address']
 
-            idnum_pic = find_idnum(img_data_gray, img_org)
-            # showimg(idnum_pic)
+            
+            #showing(idnum_pic)
             # print 'idnum'
-            result_dict['idnum'], result_dict['birth'] = get_idnum_and_birth(idnum_pic)
+            result_dict['idnum']=new_id
+            print('idnum')
+            print(new_id)
+            result_dict['birth'] = new_birth
+            print('birth')
+            print(new_birth)
             # print result_dict['idnum']
         elif mode==0:
             # generate_mask(x)
@@ -138,8 +147,8 @@ def img_resize_gray(imgorg):
         return hist_equal(cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)), crop
 
 def find_name(crop_gray, crop_org):
-        template = cv2.UMat(cv2.imread('name_mask_%s.jpg'%pixel_x, 0))
-        # showimg(crop_org)
+        template = cv2.UMat(cv2.imread('name_mask_%s.jpg'%pixel_x, 0))#template 得到姓名图片
+        #showimg(template)
         w, h = cv2.UMat.get(template).shape[::-1]
         res = cv2.matchTemplate(crop_gray, template, cv2.TM_CCOEFF_NORMED)
         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
@@ -256,15 +265,19 @@ def find_idnum(crop_gray, crop_org):
         return cv2.UMat(result)
 
 
-def showimg(img):
-        cv2.namedWindow("contours", 0);
-        cv2.resizeWindow("contours", 1280, 720);
-        cv2.imshow("contours", img)
-        cv2.waitKey()
+def showing(img,name):
+        #cv2.namedWindow("contours", 0);
+        #cv2.resizeWindow("contours", 1280, 720);
+        #cv2.imshow("contours", img)
+        #cv2.waitKey()
+        cv2.namedWindow(name, 0);
+        cv2.resizeWindow(name, 1280, 720);
+        cv2.imshow(name, img)
+        cv2.waitKey(0)#等待键盘按键
 
 #psm model:
 #  0    Orientation and script detection (OSD) only.
-#  1    Automatic page segmentation with OSD.
+#  1    Automatic page segmentation with OSD.    
 #  2    Automatic page segmentation, but no OSD, or OCR.
 #  3    Fully automatic page segmentation, but no OSD. (Default)
 #  4    Assume a single column of text of variable sizes.
@@ -280,34 +293,68 @@ def showimg(img):
 # 			bypassing hacks that are Tesseract-specific
 
 def get_name(img):
-        #    cv2.imshow("method3", img)
-        #    cv2.waitKey()
         print('name')
-        _, _, red = cv2.split(img) #split 会自动将UMat转换回Mat
+        _, _, red = cv2.split(img) #split 会自动将UMat转换回Mat   img彩色的，red单通道图片灰色的
         red = cv2.UMat(red)
         red = hist_equal(red)
-        red = cv2.adaptiveThreshold(red, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 151, 50)
+        red1 = cv2.adaptiveThreshold(red, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 151, 50)#二值化
+        red = cv2.adaptiveThreshold(red, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY, 151, 50)#二值化
         #    red = cv2.medianBlur(red, 3)
-        red = img_resize(red, 150)
-        img = img_resize(img, 150)
-        # showimg(red)
-        # cv2.imwrite('name.png', red)
-        #    img2 = Image.open('address.png')
-        # img = Image.fromarray(cv2.UMat.get(red).astype('uint8'))
-        #return get_result_vary_length(red, 'chi_sim', img, '-psm 7')
-        return get_result_vary_length(red, 'chi_sim', img, '--psm 7')
+        #red = img_resize(red, 150)#白底黑字调整大小
+        img = img_resize(img, 150 )#原图调整大小（数字越小，细节更加明显）
+        showing(img, 'name-img')
+        showing(red1,'name-mean')
+        showing(red,'name-gaussian')
+        name=get_result_vary_length(red, 'chi_sim', img, '--psm 7')
+        print(name)
+        return name
         # return punc_filter(pytesseract.image_to_string(img, lang='chi_sim', config='-psm 13').replace(" ",""))
 
+def get_address(img):
+        #_, _, red = cv2.split(img)
+        #red = cv2.medianBlur(red, 3)
+        print('address')
+        _, _, red = cv2.split(img)
+        red = cv2.UMat(red)
+        red = hist_equal(red)
+        red = cv2.adaptiveThreshold(red, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 151, 50)
+        red = img_resize(red, 300)
+        img = img_resize(img, 300)
+        showing(img,'addredd-img')
+        showing(red,'address-red')
+        #cv2.imwrite('address_red.png', red)
+        #img = Image.fromarray(cv2.UMat.get(red).astype('uint8'))
+        #img.show()
+        address= punc_filter(get_result_vary_length(red, 'chi_sim', img, '--psm 6'))
+        print(address)
+        return address
+        #return punc_filter(pytesseract.image_to_string(img, lang='chi_sim', config='-psm 3').replace(" ",""))
+
+def new_get_sex(id):
+        judge_num=int(id[-2])
+        if judge_num%2==0:
+            sex="女"
+        else:
+            sex="男"
+        print("sex")
+        print(sex)
+        return sex
+    
 def get_sex(img):
         _, _, red = cv2.split(img)
         print('sex')
         red = cv2.UMat(red)
+        #showing(red,"name1")
         red = hist_equal(red)
+        #showing(red,"name2")
         red = cv2.adaptiveThreshold(red, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 151, 50)
+        #showing(red,"name3")
         #    red = cv2.medianBlur(red, 3)
         #    cv2.imwrite('address.png', img)
         #    img2 = Image.open('address.png')
         red = img_resize(red, 150)
+       
+        
         # cv2.imwrite('sex.png', red)
         # img = Image.fromarray(cv2.UMat.get(red).astype('uint8'))
         #return get_result_fix_length(red, 1, 'sex', '-psm 10')
@@ -321,11 +368,17 @@ def get_nation(img):
         red = hist_equal(red)
         red = cv2.adaptiveThreshold(red, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 151, 50)
         red = img_resize(red, 150)
+        img = Image.fromarray(cv2.UMat.get(red).astype('uint8'))
         # cv2.imwrite('nation.png', red)
         # img = Image.fromarray(cv2.UMat.get(red).astype('uint8'))
-        #return get_result_fix_length(red, 1, 'nation', '-psm 10')
-        return get_result_fix_length(red, 1, 'chi_sim', '--psm 10')
-        # return pytesseract.image_to_string(img, lang='nation', config='-psm 13').replace(" ","")
+       
+        new_nation=get_result_fix_length(red, 1, 'chi_sim', '--psm 10')
+        if new_nation=="汊":
+            new_nation="汉"
+        print(new_nation)
+        return new_nation
+        #return get_result_vary_length(red, 'chi_sim', img, '--psm 6')
+        #return pytesseract.image_to_string(img, lang='chi_sim', config='--psm 13').replace(" ","")
 
 # def get_birth(year, month, day):
 #         _, _, red = cv2.split(year)
@@ -358,25 +411,10 @@ def get_nation(img):
 #                get_result_vary_length(day_red, 'eng', '-c tessedit_char_whitelist=0123456789 -psm 13')
 
 
-def get_address(img):
-        #_, _, red = cv2.split(img)
-        #red = cv2.medianBlur(red, 3)
-        print('address')
-        _, _, red = cv2.split(img)
-        red = cv2.UMat(red)
-        red = hist_equal(red)
-        red = cv2.adaptiveThreshold(red, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 151, 50)
-        red = img_resize(red, 300)
-        #img = img_resize(img, 300)
-        #cv2.imwrite('address_red.png', red)
-        img = Image.fromarray(cv2.UMat.get(red).astype('uint8'))
-        #return punc_filter(get_result_vary_length(red,'chi_sim', img, '-psm 6'))
-        return punc_filter(get_result_vary_length(red, 'chi_sim', img, '--psm 6'))
-        #return punc_filter(pytesseract.image_to_string(img, lang='chi_sim', config='-psm 3').replace(" ",""))
+
 
 def get_idnum_and_birth(img):
         _, _, red = cv2.split(img)
-        print('idnum')
         red = cv2.UMat(red)
         red = hist_equal(red)
         red = cv2.adaptiveThreshold(red, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 151, 50)
@@ -389,13 +427,16 @@ def get_idnum_and_birth(img):
         return idnum_str, idnum_str[6:14]
 
 def get_result_fix_length(red, fix_length, langset, custom_config=''):
-    red_org = red
-    cv2.fastNlMeansDenoising(red, red, 4, 7, 35)
-    rec, red = cv2.threshold(red, 127, 255, cv2.THRESH_BINARY_INV)
+    red_org = red#red是黑白的
+    cv2.fastNlMeansDenoising(red,red,4,7,35)#非局部平均去噪
+    rec, red = cv2.threshold(red, 127, 255, cv2.THRESH_BINARY_INV)#二值化
     image, contours, hierarchy = cv2.findContours(red, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     # print(len(contours))
     # 描边一次可以减少噪点
-    cv2.drawContours(red, contours, -1, (0, 255, 0), 1)
+    cv2.drawContours(red, contours,-1,(0,255,0),1)
+    #showing(red,'red')
+    #cv2.imshow("img", red)  
+    #cv2.waitKey(0) 
     color_img = cv2.cvtColor(red, cv2.COLOR_GRAY2BGR)
     # for x, y, w, h in contours:
     #     imgrect = cv2.rectangle(color_img, (x, y), (x + w, y + h), (0, 255, 0), 2)
@@ -433,10 +474,13 @@ def get_result_fix_length(red, fix_length, langset, custom_config=''):
     result_string = ''
     numset_contours.sort(key=lambda num: num[0])
     for x, y, w, h in numset_contours:
+        
         result_string += pytesseract.image_to_string(cv2.UMat.get(red_org)[y-10:y + h + 10, x-10:x + w + 10], lang=langset, config=custom_config)
+        #print('结果是：'+ result_string)
+        #showing(cv2.UMat.get(red_org)[y-10:y + h + 10, x-10:x + w + 10],'no9')
     # print(new_r)
     # cv2.imwrite('fixlengthred.png', cv2.UMat.get(red_org)[y-10:y + h +10 , x-10:x + w + 10])
-    print(result_string)
+    #print(result_string)
     return result_string
 
 def get_result_vary_length(red, langset, org_img, custom_config=''):
@@ -478,7 +522,7 @@ def get_result_vary_length(red, langset, org_img, custom_config=''):
     result_string = ''
     result_string += pytesseract.image_to_string(cv2.UMat.get(red_org)[y-10:y + h + 10, x-10:x + w + 10], lang=langset,
                                                  config=custom_config)
-    print(result_string)
+    #print(result_string)
     # cv2.imwrite('varylength.png', cv2.UMat.get(org_img)[y:y + h, x:x + w])
     # cv2.imwrite('varylengthred.png', cv2.UMat.get(red_org)[y:y + h, x:x + w])
     # numset_contours.sort(key=lambda num: num[0])

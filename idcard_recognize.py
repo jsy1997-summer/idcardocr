@@ -12,6 +12,9 @@ def process(img_name):
     try:
         idfind = findidcard.findidcard()
         idcard_img = idfind.find(img_name)
+        #cv2.namedWindow('image1', int(cv2.WINDOW_NORMAL/3))
+        #cv2.imshow('image1',idcard_img);
+        #cv2.waitKey(0);
         result_dict = idcardocr.idcardocr(idcard_img)
         result_dict['error'] = 0
     except Exception as e:
@@ -20,7 +23,7 @@ def process(img_name):
     return result_dict
 
 #SocketServer.ForkingMixIn, SocketServer.ThreadingMixIn
-class ForkingServer(socketserver.ForkingMixIn, HTTPServer):
+class ForkingServer(socketserver.ThreadingMixIn, HTTPServer):
     pass
 
 class S(BaseHTTPRequestHandler):
@@ -63,7 +66,9 @@ def http_server(server_class=ForkingServer, handler_class=S, port=8080):
     print('Starting httpd...')
     print(u"是否启用OpenCL：%s"%cv2.ocl.useOpenCL())
     httpd.serve_forever()
-
+    
+#作为脚本执行的时候才会被执行，被其他文件import是我时候不会别执行
+#本模块被执行的时候，__name__=="__main__",被其他模块import的时候，__name__=="idcard_recognize"(文件名)
 if __name__=="__main__":
 
     # p = Pool()

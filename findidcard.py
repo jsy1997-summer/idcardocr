@@ -13,19 +13,22 @@ class findidcard:
         print(u'进入身份证模版匹配流程...')
         img1_name = 'idcard_mask.jpg'
         MIN_MATCH_COUNT = 10
-        img1 = cv2.UMat(cv2.imread(img1_name, 0)) # queryImage in Gray
+        #imagetest=cv2.imread(img1_name, 0)
+        #print(type(imagetest))#numpy.ndarray
+        img1 = cv2.UMat(cv2.imread(img1_name, 0)) # queryImage in GrayUMatU型难找最好的硬件，提升性能
+        #print(type(img1))#cv2.UMat
+        #self.showimg(img1)
         img1 = self.img_resize(img1, 640)
-        # self.showimg(img1)
+        #self.showimg(img1)
         #img1 = idocr.hist_equal(img1)
-        img2 = cv2.UMat(cv2.imread(img2_name, 0))  # trainImage in Gray
+        img2 = cv2.UMat(cv2.imread(img2_name, 0))  # trainImage in Gray加载灰度图像
         # print(img2.get().shape)
         img2 = self.img_resize(img2, 1920)
         #img2 = idocr.hist_equal(img2)
-        img_org = cv2.UMat(cv2.imread(img2_name))
-        img_org = self.img_resize(img_org, 1920)
+        img_org = cv2.UMat(cv2.imread(img2_name))  #加载彩色图像
+        img_org = self.img_resize(img_org, 1920)#
         #  Initiate SIFT detector
         t1 = round(time.time() * 1000)
-
         sift = cv2.xfeatures2d.SIFT_create()
         # find the keypoints and descriptors with SIFT
         kp1, des1 = sift.detectAndCompute(img1,None)
@@ -89,5 +92,5 @@ class findidcard:
 
 if __name__=="__main__":
     idfind = findidcard()
-    result = idfind.find('idcard_mask.jpg', 'testimages/9.jpg')
+    result = idfind.find('testimages/9.jpg')
     #idfind.showimg(result)
