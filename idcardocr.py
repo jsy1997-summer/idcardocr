@@ -14,18 +14,23 @@ pixel_x = int(x * 3840)
 print(x, pixel_x)
 
 #mode0:识别姓名，出生日期，身份证号； mode1：识别所有信息
-def idcardocr(imgname, mode=1):
+#s和d是为了训练参数用到的，实际不需要
+def idcardocr(imgname, mode=1,s=151,d=50):
         print(u'进入身份证光学识别流程...')
         if mode==1:
+            t1 = round(time.time() * 1000)
             # generate_mask(x)
-            img_data_gray, img_org = img_resize_gray(imgname)#img_data_gray身份证灰度凸显，img_org身份证彩色图像
+            #kerne=np.array(([0,1,0],[1,-4,1],[0,1,0]), dtype="float32")
+            #showing(imgname,'img0')
+            #imgname=cv2.filter2D(imgname, -1, kerne)#图像锐化
+            #showing(imgname,'img1')
+            img_data_gray, img_org = img_resize_gray(imgname)#img_data_gray身份证灰度图像，img_org身份证彩色图像
             result_dict = dict()
-            name_pic = find_name(img_data_gray, img_org)#name_pic得到贾素银图片
+            name_pic = find_name(img_data_gray, img_org)#name_pic得到名字图片
             #showing(name_pic,'image1')
             #result_dict['name'] = get_address(name_pic)
             result_dict['name'] = get_name(name_pic)
             # print result_dict['name']
-            
 
             #sex_pic = find_sex(img_data_gray, img_org)
             #showimg(sex_pic)
@@ -36,15 +41,15 @@ def idcardocr(imgname, mode=1):
             result_dict['sex'] = new_get_sex(new_id)
 
             nation_pic = find_nation(img_data_gray, img_org)
-            #showimg(nation_pic)
+            #showing(nation_pic,'image2')
             # print 'nation'
             result_dict['nation'] = get_nation(nation_pic)
             # print result_dict['nation']
 
-        #    address_pic = find_address(img_data_gray, img_org)
+            address_pic = find_address(img_data_gray, img_org)
             #showimg(address_pic)
             # print 'address'
-        #    result_dict['address'] = get_address(address_pic)
+            result_dict['address'] = get_address(address_pic)
             # print result_dict['address']
 
             
@@ -56,6 +61,8 @@ def idcardocr(imgname, mode=1):
             result_dict['birth'] = new_birth
             print('birth')
             print(new_birth)
+            t2 = round(time.time() * 1000)
+            print(u'识别身份证耗时:%s' % (t2 - t1))
             # print result_dict['idnum']
         elif mode==0:
             # generate_mask(x)
@@ -175,7 +182,6 @@ def find_sex(crop_gray, crop_org):
 
 def find_nation(crop_gray, crop_org):
         template = cv2.UMat(cv2.imread('nation_mask_%s.jpg'%pixel_x, 0))
-        #showimg(template)
         w, h = cv2.UMat.get(template).shape[::-1]
         res = cv2.matchTemplate(crop_gray, template, cv2.TM_CCOEFF_NORMED)
         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
@@ -183,7 +189,7 @@ def find_nation(crop_gray, crop_org):
         bottom_right = (top_left[0] + int(500*x), top_left[1] + int(300*x))
         result = cv2.UMat.get(crop_org)[top_left[1]-10:bottom_right[1], top_left[0]-10:bottom_right[0]]
         cv2.rectangle(crop_gray, top_left, bottom_right, 255, 2)
-        #showimg(crop_gray)
+        #showing(cv2.UMat(result),'3')
         return cv2.UMat(result)
 
 # def find_birth(crop_gray, crop_org):
@@ -235,8 +241,6 @@ def find_nation(crop_gray, crop_org):
 
 def find_address(crop_gray, crop_org):
         template = cv2.UMat(cv2.imread('address_mask_%s.jpg'%pixel_x, 0))
-        # showimg(template)
-        #showimg(crop_gray)
         w, h = cv2.UMat.get(template).shape[::-1]
         #t1 = round(time.time()*1000)
         res = cv2.matchTemplate(crop_gray, template, cv2.TM_CCOEFF_NORMED)
@@ -246,8 +250,7 @@ def find_address(crop_gray, crop_org):
         top_left = (max_loc[0] + w, max_loc[1] - int(20*x))
         bottom_right = (top_left[0] + int(1700*x), top_left[1] + int(550*x))
         result = cv2.UMat.get(crop_org)[top_left[1]-10:bottom_right[1], top_left[0]-10:bottom_right[0]]
-        cv2.rectangle(crop_gray, top_left, bottom_right, 255, 2)
-        #showimg(crop_gray)
+        #showing(cv2.rectangle(crop_gray, top_left, bottom_right, 255, 2),'addre')
         return cv2.UMat(result)
 
 def find_idnum(crop_gray, crop_org):
@@ -297,34 +300,41 @@ def get_name(img):
         _, _, red = cv2.split(img) #split 会自动将UMat转换回Mat   img彩色的，red单通道图片灰色的
         red = cv2.UMat(red)
         red = hist_equal(red)
-        red1 = cv2.adaptiveThreshold(red, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 151, 50)#二值化
+        #red1 = cv2.adaptiveThreshold(red, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 151, 50)#二值化
         red = cv2.adaptiveThreshold(red, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY, 151, 50)#二值化
         #    red = cv2.medianBlur(red, 3)
         #red = img_resize(red, 150)#白底黑字调整大小
         img = img_resize(img, 150 )#原图调整大小（数字越小，细节更加明显）
-        showing(img, 'name-img')
-        showing(red1,'name-mean')
-        showing(red,'name-gaussian')
+        #showing(img, 'name-img')
+        #showing(red1,'name-mean')
+        #showing(red,'name-gaussian')
         name=get_result_vary_length(red, 'chi_sim', img, '--psm 7')
         print(name)
         return name
         # return punc_filter(pytesseract.image_to_string(img, lang='chi_sim', config='-psm 13').replace(" ",""))
 
 def get_address(img):
-        #_, _, red = cv2.split(img)
-        #red = cv2.medianBlur(red, 3)
         print('address')
         _, _, red = cv2.split(img)
         red = cv2.UMat(red)
         red = hist_equal(red)
-        red = cv2.adaptiveThreshold(red, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 151, 50)
+        #showing(red,'red0')
+        #red=cv2.bilateralFilter(red,0,s,d)
+        #red=cv2.ximgproc.guidedFilter(red,red,50,20,-5)
+        #showing(red,'red1')
+        red = cv2.adaptiveThreshold(red, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY,151,46)
+       
+        #print(pytesseract.image_to_string(red, lang='chi_sim', config='-psm 6'))
+        #red=cv2.dilate(red,np.ones((3,3),np.uint8),1)
+        #red=cv2.erode(red,np.ones((5,5),np.uint8),3)
+        #red = cv2.medianBlur(red,3)
+        #red=cv2.GaussianBlur(red, (3, 3),200)#高斯滤波
+        #red=cv2.boxFilter(red, -1, (3, 3), normalize =1)#方框滤波，效果差
+        #red=cv2.blur(red, (3, 3))#均值滤波
+        
+        #showing(red,'red2')
         red = img_resize(red, 300)
         img = img_resize(img, 300)
-        showing(img,'addredd-img')
-        showing(red,'address-red')
-        #cv2.imwrite('address_red.png', red)
-        #img = Image.fromarray(cv2.UMat.get(red).astype('uint8'))
-        #img.show()
         address= punc_filter(get_result_vary_length(red, 'chi_sim', img, '--psm 6'))
         print(address)
         return address
@@ -366,13 +376,13 @@ def get_nation(img):
         print('nation')
         red = cv2.UMat(red)
         red = hist_equal(red)
-        red = cv2.adaptiveThreshold(red, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 151, 50)
-        red = img_resize(red, 150)
-        img = Image.fromarray(cv2.UMat.get(red).astype('uint8'))
+        red = cv2.adaptiveThreshold(red, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 151, 46)
+        red = img_resize(red,300)
+        img = img_resize(img,300)
+        #img = Image.fromarray(cv2.UMat.get(red).astype('uint8'))
         # cv2.imwrite('nation.png', red)
-        # img = Image.fromarray(cv2.UMat.get(red).astype('uint8'))
-       
-        new_nation=get_result_fix_length(red, 1, 'chi_sim', '--psm 10')
+        
+        new_nation=get_result_fix_length(red,img,1,'chi_sim', '--psm 10')
         if new_nation=="汊":
             new_nation="汉"
         print(new_nation)
@@ -426,7 +436,7 @@ def get_idnum_and_birth(img):
         idnum_str = get_result_vary_length(red, 'eng', img, '--psm 8 ')
         return idnum_str, idnum_str[6:14]
 
-def get_result_fix_length(red, fix_length, langset, custom_config=''):
+def get_result_fix_length(red,img, fix_length, langset, custom_config=''):
     red_org = red#red是黑白的
     cv2.fastNlMeansDenoising(red,red,4,7,35)#非局部平均去噪
     rec, red = cv2.threshold(red, 127, 255, cv2.THRESH_BINARY_INV)#二值化
@@ -451,7 +461,8 @@ def get_result_fix_length(red, fix_length, langset, custom_config=''):
             numset_contours.append((x, y, w, h))
     while len(numset_contours) != fix_length:
         if calcu_cnt > 50:
-            print(u'计算次数过多！目前阈值为：', h_threshold)
+            new_nation=get_result_vary_length(red,'chi_sim',img,'--psm 6')
+            return new_nation
             break
         numset_contours = []
         calcu_cnt += 1
@@ -471,6 +482,8 @@ def get_result_fix_length(red, fix_length, langset, custom_config=''):
                 if h > h_threshold:
                     contours_cnt += 1
                     numset_contours.append((x, y, w, h))
+    #imgrect = cv2.rectangle(color_img, (x, y), (x + w, y + h), (0, 255, 0), 2)
+    #showing(imgrect,'imgrect')
     result_string = ''
     numset_contours.sort(key=lambda num: num[0])
     for x, y, w, h in numset_contours:
@@ -484,15 +497,18 @@ def get_result_fix_length(red, fix_length, langset, custom_config=''):
     return result_string
 
 def get_result_vary_length(red, langset, org_img, custom_config=''):
+    #red:二值图片；langset：中文转换；org_img:原图；custom_config:转换模式
     red_org = red
     # cv2.fastNlMeansDenoising(red, red, 4, 7, 35)
     rec, red = cv2.threshold(red, 127, 255, cv2.THRESH_BINARY_INV)
     image, contours, hierarchy = cv2.findContours(red, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    # print(len(contours))
+    #print(len(contours))
     # 描边一次可以减少噪点
-    cv2.drawContours(red, contours, -1, (255, 255, 255), 1)
+    cv2.drawContours(red, contours, -1, (255, 255, 255),1)
+    #red=cv2.erode(red,np.ones((2,2),np.uint8),3)
     color_img = cv2.cvtColor(red, cv2.COLOR_GRAY2BGR)
-    numset_contours = []
+
+    #numset_contours = []
     height_list=[]
     width_list=[]
     for cnt in contours:
@@ -502,26 +518,27 @@ def get_result_vary_length(red, langset, org_img, custom_config=''):
         width_list.append(w)
     height_list.remove(max(height_list))
     width_list.remove(max(width_list))
-    height_threshold = 0.70*max(height_list)
+    height_threshold = 0.21*max(height_list)#原来的阈值是0.7去乘，但是阈值高导致有的字检测不到
     width_threshold = 1.4 * max(width_list)
-    # print('height_threshold:'+str(height_threshold)+'width_threshold:'+str(width_threshold))
+    #print('height_threshold:'+str(height_threshold)+'width_threshold:'+str(width_threshold))
     big_rect=[]
     for cnt in contours:
         x, y, w, h = cv2.boundingRect(cnt)
-        if h > height_threshold and w < width_threshold:
+        if h > height_threshold and w < width_threshold:#名字有几个字，就有几个符合条件
             # print(h,w)
-            numset_contours.append((x, y, w, h))
+            #numset_contours.append((x, y, w, h))
             big_rect.append((x, y))
             big_rect.append((x + w, y + h))
-    big_rect_nparray = np.array(big_rect, ndmin=3)
+    #print(big_rect)
+    big_rect_nparray = np.array(big_rect, ndmin=3)#转换成为3维的
     x, y, w, h = cv2.boundingRect(big_rect_nparray)
-    # imgrect = cv2.rectangle(color_img, (x, y), (x + w, y + h), (0, 255, 0), 2)
-    # showimg(imgrect)
-    # showimg(cv2.UMat.get(org_img)[y:y + h, x:x + w])
-
+    imgrect = cv2.rectangle(color_img, (x, y), (x + w, y + h), (0, 255, 0), 2)
+    imgrect=cv2.erode(imgrect,np.ones((4,4),np.uint8),1)
+    #showing(imgrect,'imgrect')
     result_string = ''
-    result_string += pytesseract.image_to_string(cv2.UMat.get(red_org)[y-10:y + h + 10, x-10:x + w + 10], lang=langset,
-                                                 config=custom_config)
+    image2=cv2.UMat.get(red_org)[y-10:y + h + 10, x-10:x + w + 10]
+    #showing(red_org,'red')
+    result_string += pytesseract.image_to_string(image2, lang=langset,config=custom_config)
     #print(result_string)
     # cv2.imwrite('varylength.png', cv2.UMat.get(org_img)[y:y + h, x:x + w])
     # cv2.imwrite('varylengthred.png', cv2.UMat.get(red_org)[y:y + h, x:x + w])

@@ -15,7 +15,7 @@ def process(img_name):
         #cv2.namedWindow('image1', int(cv2.WINDOW_NORMAL/3))
         #cv2.imshow('image1',idcard_img);
         #cv2.waitKey(0);
-        result_dict = idcardocr.idcardocr(idcard_img)
+        result_dict = idcardocr.idcardocr(idcard_img,1)
         result_dict['error'] = 0
     except Exception as e:
         result_dict = {'error':1}

@@ -11,6 +11,7 @@ class findidcard:
     #img1为身份证模板, img2为需要识别的图像
     def find(self, img2_name):
         print(u'进入身份证模版匹配流程...')
+        t1 = round(time.time() * 1000)
         img1_name = 'idcard_mask.jpg'
         MIN_MATCH_COUNT = 10
         #imagetest=cv2.imread(img1_name, 0)
@@ -28,7 +29,6 @@ class findidcard:
         img_org = cv2.UMat(cv2.imread(img2_name))  #加载彩色图像
         img_org = self.img_resize(img_org, 1920)#
         #  Initiate SIFT detector
-        t1 = round(time.time() * 1000)
         sift = cv2.xfeatures2d.SIFT_create()
         # find the keypoints and descriptors with SIFT
         kp1, des1 = sift.detectAndCompute(img1,None)
